@@ -22,6 +22,7 @@ import android.widget.CompoundButton
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.RadioGroup
+import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
 import java.util.Calendar
@@ -48,6 +49,11 @@ class MainActivity : Activity() {
         bindSwitch(R.id.switchCalls) { change { prefs.callsEnabled = it } }
         bindSwitch(R.id.switchMessages) { change { prefs.messagesEnabled = it } }
         bindSwitch(R.id.switchPrivate) { prefs.alertPrivateNumbers = it }
+        bindSwitch(R.id.switchCustomVolume) { change { prefs.customVolume = it } }
+        bindSwitch(R.id.switchCallVibrate) { prefs.callVibrate = it }
+        bindSwitch(R.id.switchMessageVibrate) { prefs.messageVibrate = it }
+        bindVolume(R.id.seekCallVolume, R.id.labelCallVolume, "Volume des appels") { prefs.callVolume = it }
+        bindVolume(R.id.seekMessageVolume, R.id.labelMessageVolume, "Volume des messages") { prefs.messageVolume = it }
 
         // Raccourcis
         button(R.id.btnAllOn) {
@@ -100,8 +106,8 @@ class MainActivity : Activity() {
         button(R.id.btnAddName) { askName() }
         button(R.id.btnMessageSound) { pickSound(RingtoneManager.TYPE_NOTIFICATION, prefs.messageSound, REQ_MESSAGE_SOUND) }
         button(R.id.btnCallSound) { pickSound(RingtoneManager.TYPE_RINGTONE, prefs.callSound, REQ_CALL_SOUND) }
-        button(R.id.btnTestMessage) { testPlayer.play(AlertPlayer.Kind.MESSAGE, prefs.messageSound, 15_000) }
-        button(R.id.btnTestCall) { testPlayer.play(AlertPlayer.Kind.PHONE_CALL, prefs.callSound, 10_000) }
+        button(R.id.btnTestMessage) { testPlayer.play(AlertPlayer.Kind.MESSAGE, 15_000) }
+        button(R.id.btnTestCall) { testPlayer.play(AlertPlayer.Kind.PHONE_CALL, 10_000) }
         button(R.id.btnStop) { testPlayer.stop() }
         button(R.id.btnClearLog) {
             EventLog.clear(this)
@@ -126,6 +132,11 @@ class MainActivity : Activity() {
         setChecked(R.id.switchCalls, prefs.callsEnabled)
         setChecked(R.id.switchMessages, prefs.messagesEnabled)
         setChecked(R.id.switchPrivate, prefs.alertPrivateNumbers)
+        setChecked(R.id.switchCustomVolume, prefs.customVolume)
+        setChecked(R.id.switchCallVibrate, prefs.callVibrate)
+        setChecked(R.id.switchMessageVibrate, prefs.messageVibrate)
+        setVolume(R.id.seekCallVolume, R.id.labelCallVolume, "Volume des appels", prefs.callVolume)
+        setVolume(R.id.seekMessageVolume, R.id.labelMessageVolume, "Volume des messages", prefs.messageVolume)
         findViewById<TextView>(R.id.statusSummary).apply {
             text = summary()
             setBackgroundColor(if (prefs.isActive()) 0x3322AA55 else 0x33DD4444)
@@ -151,8 +162,12 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.btnBattery).visibility = if (batteryOk) Button.GONE else Button.VISIBLE
 
         val alarm = SoundState.alarmVolume(this)
-        status(R.id.statusAlarm, alarm > 0, "Volume des alertes = volume « Alarme » ($alarm)",
-            "Le volume « Alarme » est à 0 : les alertes seront muettes")
+        if (prefs.customVolume) {
+            status(R.id.statusAlarm, true, "Volume des alertes : réglé dans « Sons » (le volume Alarme est remis comme avant après chaque alerte)", "")
+        } else {
+            status(R.id.statusAlarm, alarm > 0, "Volume des alertes = volume « Alarme » actuel ($alarm)",
+                "Le volume « Alarme » est à 0 : les alertes seront muettes")
+        }
 
         findViewById<Button>(R.id.btnMessageSound).text = "Son des messages : ${soundName(prefs.messageSound, true)}"
         findViewById<Button>(R.id.btnCallSound).text = "Son des appels : ${soundName(prefs.callSound, false)}"
@@ -380,6 +395,31 @@ class MainActivity : Activity() {
     private fun bindSwitch(id: Int, onChange: (Boolean) -> Unit) {
         findViewById<CompoundButton>(id).apply {
             setOnCheckedChangeListener { view, checked -> if (view.tag == null) onChange(checked) }
+        }
+    }
+
+    private fun bindVolume(seekId: Int, labelId: Int, label: String, onChange: (Int) -> Unit) {
+        findViewById<SeekBar>(seekId).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(bar: SeekBar, value: Int, fromUser: Boolean) {
+                findViewById<TextView>(labelId).text = "$label : $value %"
+                if (fromUser) onChange(value)
+            }
+
+            override fun onStartTrackingTouch(bar: SeekBar) {}
+            override fun onStopTrackingTouch(bar: SeekBar) {}
+        })
+    }
+
+    private fun setVolume(seekId: Int, labelId: Int, label: String, value: Int) {
+        val enabled = prefs.customVolume
+        findViewById<SeekBar>(seekId).apply {
+            progress = value
+            isEnabled = enabled
+            alpha = if (enabled) 1f else 0.4f
+        }
+        findViewById<TextView>(labelId).apply {
+            text = "$label : $value %"
+            alpha = if (enabled) 1f else 0.4f
         }
     }
 

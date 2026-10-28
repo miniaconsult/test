@@ -4,6 +4,8 @@
     <!-- Savoir quand le téléphone sonne et quel numéro appelle -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <!-- Faire vibrer pendant les alertes -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Proposer de désactiver l'optimisation de batterie (OxygenOS ferme les applis en arrière-plan) -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 

@@ -89,6 +89,14 @@
         <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Sons" />
         <Button android:id="@+id/btnMessageSound" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <Button android:id="@+id/btnCallSound" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Switch android:id="@+id/switchCustomVolume" android:layout_width="match_parent" android:layout_height="56dp" android:text="Volume propre aux alertes (indépendant du réveil)" />
+        <TextView android:id="@+id/labelCallVolume" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <SeekBar android:id="@+id/seekCallVolume" android:layout_width="match_parent" android:layout_height="48dp" android:min="5" android:max="100" />
+        <TextView android:id="@+id/labelMessageVolume" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <SeekBar android:id="@+id/seekMessageVolume" android:layout_width="match_parent" android:layout_height="48dp" android:min="5" android:max="100" />
+        <Switch android:id="@+id/switchCallVibrate" android:layout_width="match_parent" android:layout_height="48dp" android:text="Vibrer pour les appels" />
+        <Switch android:id="@+id/switchMessageVibrate" android:layout_width="match_parent" android:layout_height="48dp" android:text="Vibrer pour les messages" />
+
         <LinearLayout style="@style/ButtonRow" android:layout_width="match_parent" android:layout_height="wrap_content">
             <Button android:id="@+id/btnTestMessage" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Tester message" />
             <Button android:id="@+id/btnTestCall" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Tester appel" />

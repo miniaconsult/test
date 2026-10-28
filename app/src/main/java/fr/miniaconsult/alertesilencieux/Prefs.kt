@@ -133,6 +133,38 @@ class Prefs(context: Context) {
         get() = sp.getString("call_sound", null)?.let(Uri::parse)
         set(value) = sp.edit().putString("call_sound", value?.toString()).apply()
 
+    /** Vrai : volume propre aux alertes. Faux : on joue au volume Alarme actuel, sans y toucher. */
+    var customVolume: Boolean
+        get() = sp.getBoolean("custom_volume", true)
+        set(value) = sp.edit().putBoolean("custom_volume", value).apply()
+
+    /** Volume des alertes en % du maximum (appliqué au volume Alarme le temps de l'alerte). */
+    var callVolume: Int
+        get() = sp.getInt("call_volume", 80)
+        set(value) = sp.edit().putInt("call_volume", value).apply()
+
+    var messageVolume: Int
+        get() = sp.getInt("message_volume", 60)
+        set(value) = sp.edit().putInt("message_volume", value).apply()
+
+    var callVibrate: Boolean
+        get() = sp.getBoolean("call_vibrate", true)
+        set(value) = sp.edit().putBoolean("call_vibrate", value).apply()
+
+    var messageVibrate: Boolean
+        get() = sp.getBoolean("message_vibrate", true)
+        set(value) = sp.edit().putBoolean("message_vibrate", value).apply()
+
+    /** Volume Alarme d'avant l'alerte, à remettre ensuite (-1 = rien à remettre). */
+    var savedAlarmVolume: Int
+        get() = sp.getInt("saved_alarm_volume", -1)
+        set(value) = sp.edit().putInt("saved_alarm_volume", value).commit().let { }
+
+    /** Volume Alarme mis par l'appli pendant l'alerte. */
+    var appliedAlarmVolume: Int
+        get() = sp.getInt("applied_alarm_volume", -1)
+        set(value) = sp.edit().putInt("applied_alarm_volume", value).commit().let { }
+
     var people: List<Person>
         get() {
             val array = JSONArray(sp.getString("people", "[]"))

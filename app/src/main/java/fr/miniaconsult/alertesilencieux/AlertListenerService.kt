@@ -61,6 +61,8 @@ class AlertListenerService : NotificationListenerService() {
     }
 
     override fun onListenerConnected() {
+        // Si l'appli a été arrêtée en pleine alerte, on remet le volume Alarme d'origine.
+        player.restoreVolume()
         if (!receiverRegistered) {
             val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -136,7 +138,7 @@ class AlertListenerService : NotificationListenerService() {
         }
         EventLog.add(this, "Appel de $who : ALERTE")
         alertSource = AlertType.CALL to Prefs.PKG_PHONE
-        player.play(AlertPlayer.Kind.PHONE_CALL, prefs.callSound, CALL_MAX_MS)
+        player.play(AlertPlayer.Kind.PHONE_CALL, CALL_MAX_MS)
     }
 
     // ---------- Notifications (Google Messages, Teams, applis ajoutées) ----------
@@ -209,7 +211,7 @@ class AlertListenerService : NotificationListenerService() {
 
         EventLog.add(this, "$source, message de $who : ALERTE")
         alertSource = AlertType.MESSAGE to app.pkg
-        player.play(AlertPlayer.Kind.MESSAGE, prefs.messageSound, MESSAGE_MAX_MS)
+        player.play(AlertPlayer.Kind.MESSAGE, MESSAGE_MAX_MS)
     }
 
     /** Appel entrant d'une application (Teams, WhatsApp...), signalé par sa notification d'appel. */
@@ -246,7 +248,7 @@ class AlertListenerService : NotificationListenerService() {
         }
         EventLog.add(this, "$source, appel de $who : ALERTE")
         alertSource = AlertType.CALL to app.pkg
-        player.play(AlertPlayer.Kind.APP_CALL, prefs.callSound, CALL_MAX_MS)
+        player.play(AlertPlayer.Kind.APP_CALL, CALL_MAX_MS)
     }
 
     // ---------- Outils ----------

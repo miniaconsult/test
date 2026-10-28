@@ -9,8 +9,9 @@ et que vous recevez :
 - un message Teams ;
 - un appel Teams.
 
-Si le son du téléphone est déjà actif, l'application ne fait rien. Elle ne modifie
-**jamais** vos réglages de son : l'alerte est jouée sur le canal « Alarme ».
+Si le son du téléphone est déjà actif, l'application ne fait rien. Elle ne modifie pas
+votre mode de sonnerie : l'alerte est jouée sur le canal « Alarme » (seul le volume
+Alarme peut être ajusté le temps de l'alerte, voir « Volume propre aux alertes »).
 
 ## Fonctions
 
@@ -33,6 +34,12 @@ Si le son du téléphone est déjà actif, l'application ne fait rien. Elle ne m
   - numéros masqués / privés : pas d'alerte par défaut (réglable) ;
   - ajout depuis les contacts du téléphone (numéro) ou par nom (pour Teams).
 - **Sons au choix** pour les messages et les appels, boutons de test.
+- **Volume propre aux alertes** (appels et messages séparément), indépendant du réveil :
+  le volume Alarme est réglé le temps de l'alerte puis remis exactement comme avant
+  (même si l'appli est arrêtée en pleine alerte). Désactivable : l'alerte utilise alors
+  le volume Alarme actuel sans y toucher.
+- **Vibration** pendant les alertes (appels : en boucle ; messages : deux impulsions),
+  réglable séparément, y compris quand le téléphone est en silencieux.
 - **Journal** des derniers événements (alerte jouée, ignorée car son actif, filtrée...).
 
 Une alerte est jouée seulement si **tout** est d'accord : application activée et pas en
@@ -59,8 +66,7 @@ l'arrête immédiatement.
      verrouillez l'appli dans les applis récentes.
 4. Acceptez l'ajout de la tuile « Alerte son », et ajoutez si vous le souhaitez
    « Alerte appels » et « Alerte messages » via le crayon du volet des réglages rapides.
-5. Vérifiez que le **volume « Alarme »** n'est pas à 0 : c'est lui qui règle le volume
-   des alertes.
+5. Réglez le **volume des alertes** dans la section « Sons » et testez-le.
 
 ## Limites connues
 
@@ -68,6 +74,7 @@ l'arrête immédiatement.
   téléphone peut sonner *et* l'application alerter : ajoutez ce contact à la liste
   d'exclusion si besoin.
 - Si « Ne pas déranger » bloque aussi les alarmes, les alertes seront muettes.
+- Si un réveil sonne pile pendant une alerte, il sonne au volume de l'alerte.
 - La détection des appels Teams / WhatsApp / autres repose sur la notification d'appel
   entrant de l'application ; si elle ne fonctionne pas, le journal aide à comprendre pourquoi.
 - Pour une application ajoutée, toute notification « normale » compte comme un message
