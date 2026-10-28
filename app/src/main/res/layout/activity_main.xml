@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <Switch
+            android:id="@+id/switchEnabled"
+            style="@style/Title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Application activée" />
+
+        <TextView
+            style="@style/Hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Astuce : ajoutez la tuile « Alerte son » dans les réglages rapides (volet du haut → crayon) pour activer / désactiver en un geste." />
+
+        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Autorisations" />
+
+        <TextView android:id="@+id/statusListener" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Button android:id="@+id/btnListener" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accès aux notifications" />
+
+        <TextView android:id="@+id/statusPhone" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Button android:id="@+id/btnPhone" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Autoriser téléphone et journal d'appels" />
+
+        <TextView android:id="@+id/statusBattery" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Button android:id="@+id/btnBattery" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ne pas restreindre la batterie" />
+
+        <TextView android:id="@+id/statusAlarm" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Alerter (uniquement si le téléphone est en silencieux / vibreur / ne pas déranger)" />
+
+        <Switch android:id="@+id/switchPhoneCalls" android:layout_width="match_parent" android:layout_height="48dp" android:text="Appels téléphoniques" />
+        <Switch android:id="@+id/switchSms" android:layout_width="match_parent" android:layout_height="48dp" android:text="Messages (Google Messages)" />
+        <Switch android:id="@+id/switchTeamsMessages" android:layout_width="match_parent" android:layout_height="48dp" android:text="Messages Teams" />
+        <Switch android:id="@+id/switchTeamsCalls" android:layout_width="match_parent" android:layout_height="48dp" android:text="Appels Teams" />
+
+        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Personnes" />
+
+        <RadioGroup
+            android:id="@+id/radioMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton android:id="@+id/radioExclude" android:layout_width="match_parent" android:layout_height="48dp" android:text="Tout le monde, sauf la liste ci-dessous" />
+            <RadioButton android:id="@+id/radioOnly" android:layout_width="match_parent" android:layout_height="48dp" android:text="Uniquement la liste ci-dessous" />
+        </RadioGroup>
+
+        <Switch android:id="@+id/switchPrivate" android:layout_width="match_parent" android:layout_height="48dp" android:text="Alerter pour les numéros masqués / privés" />
+
+        <LinearLayout
+            android:id="@+id/peopleList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <Button android:id="@+id/btnAddContact" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ajouter un contact du téléphone" />
+        <Button android:id="@+id/btnAddName" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ajouter un nom (ex. collègue Teams)" />
+
+        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Sons" />
+
+        <Button android:id="@+id/btnMessageSound" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Button android:id="@+id/btnCallSound" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button android:id="@+id/btnTestMessage" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Tester message" />
+            <Button android:id="@+id/btnTestCall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Tester appel" />
+            <Button android:id="@+id/btnStop" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Stop" />
+        </LinearLayout>
+
+        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Journal (derniers événements)" />
+
+        <TextView
+            android:id="@+id/logText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true"
+            android:textSize="12sp" />
+
+        <Button android:id="@+id/btnClearLog" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Effacer le journal" />
+    </LinearLayout>
+</ScrollView>
