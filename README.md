@@ -14,8 +14,19 @@ Si le son du téléphone est déjà actif, l'application ne fait rien. Elle ne m
 
 ## Fonctions
 
-- **Activer / désactiver en un geste** : tuile « Alerte son » dans les réglages rapides
-  (volet du haut). Également un interrupteur en haut de l'application.
+- **Résumé en haut de l'écran** : ce qui déclenchera une alerte, en clair.
+- **Raccourcis d'un geste** : « Tout activer », « Tout couper », « Appels seulement »,
+  « Messages seulement », et **pause** 1 h / 3 h / jusqu'à demain 8 h (reprise automatique).
+- **Par type** : « Tous les appels » et « Tous les messages » se coupent d'un coup, sans
+  perdre les choix faits application par application.
+- **Par application** : Téléphone (appels), Google Messages (messages), Teams (appels et
+  messages), plus toute application ajoutée (WhatsApp, Outlook, Signal...), chacune avec
+  ses interrupteurs « Appels » / « Messages ». Boutons « Tout cocher » / « Tout décocher ».
+- **3 tuiles dans les réglages rapides** (volet du haut) :
+  - « Alerte son » : tout activer / tout couper (et lever une pause) ;
+  - « Alerte appels » : activer / couper les appels ;
+  - « Alerte messages » : activer / couper les messages.
+  Un appui long sur une tuile ouvre l'application.
 - **Filtre des personnes** :
   - « Tout le monde, sauf la liste » (ex. : pas d'alerte pour X et Y) ou
     « Uniquement la liste » ;
@@ -24,8 +35,12 @@ Si le son du téléphone est déjà actif, l'application ne fait rien. Elle ne m
 - **Sons au choix** pour les messages et les appels, boutons de test.
 - **Journal** des derniers événements (alerte jouée, ignorée car son actif, filtrée...).
 
+Une alerte est jouée seulement si **tout** est d'accord : application activée et pas en
+pause, type activé, application cochée pour ce type, personne autorisée, et téléphone muet.
+
 Pour un appel, l'alerte sonne en boucle jusqu'à ce que vous décrochiez, refusiez ou que
-l'appel s'arrête (60 s maximum).
+l'appel s'arrête (60 s maximum). Couper l'application ou le type pendant une alerte
+l'arrête immédiatement.
 
 ## Installation sur le téléphone
 
@@ -42,8 +57,8 @@ l'appel s'arrête (60 s maximum).
    - **Batterie** → ne pas restreindre. Sur OnePlus, vérifiez aussi
      *Paramètres → Batterie → Optimisation de la batterie* et, si disponible,
      verrouillez l'appli dans les applis récentes.
-4. Acceptez l'ajout de la tuile « Alerte son » (ou ajoutez-la via le crayon du volet
-   des réglages rapides).
+4. Acceptez l'ajout de la tuile « Alerte son », et ajoutez si vous le souhaitez
+   « Alerte appels » et « Alerte messages » via le crayon du volet des réglages rapides.
 5. Vérifiez que le **volume « Alarme »** n'est pas à 0 : c'est lui qui règle le volume
    des alertes.
 
@@ -53,8 +68,10 @@ l'appel s'arrête (60 s maximum).
   téléphone peut sonner *et* l'application alerter : ajoutez ce contact à la liste
   d'exclusion si besoin.
 - Si « Ne pas déranger » bloque aussi les alarmes, les alertes seront muettes.
-- La détection des appels Teams repose sur la notification d'appel entrant de Teams ;
-  si elle ne fonctionne pas, le journal de l'application aide à comprendre pourquoi.
+- La détection des appels Teams / WhatsApp / autres repose sur la notification d'appel
+  entrant de l'application ; si elle ne fonctionne pas, le journal aide à comprendre pourquoi.
+- Pour une application ajoutée, toute notification « normale » compte comme un message
+  (décochez « Messages » pour cette application si cela fait trop d'alertes).
 - Les noms (Teams, Google Messages) doivent correspondre à ceux affichés dans les
   notifications (majuscules et accents ignorés).
 

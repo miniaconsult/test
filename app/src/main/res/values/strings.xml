@@ -2,4 +2,6 @@
 <resources>
     <string name="app_name">Alerte Silencieux</string>
     <string name="tile_label">Alerte son</string>
+    <string name="tile_calls_label">Alerte appels</string>
+    <string name="tile_messages_label">Alerte messages</string>
 </resources>

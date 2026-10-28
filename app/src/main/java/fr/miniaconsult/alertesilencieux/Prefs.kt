@@ -8,30 +8,112 @@ import org.json.JSONObject
 /** Une personne de la liste : un nom (pour Teams / Messages) et des numéros (pour les appels / SMS). */
 data class Person(val name: String, val numbers: List<String>)
 
+/**
+ * Une application surveillée. [calls] / [messages] valent null quand le type ne s'applique pas
+ * (ex. pas de messages pour l'application Téléphone).
+ */
+data class WatchedApp(val pkg: String, val label: String, val calls: Boolean?, val messages: Boolean?, val builtIn: Boolean)
+
+enum class AlertType { CALL, MESSAGE }
+
 /** Réglages de l'application, stockés localement sur le téléphone. */
 class Prefs(context: Context) {
     private val sp = context.applicationContext.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
-    /** Interrupteur général (aussi piloté par la tuile des réglages rapides). */
+    /** Interrupteur général (aussi piloté par la tuile « Alerte son »). */
     var enabled: Boolean
         get() = sp.getBoolean("enabled", true)
         set(value) = sp.edit().putBoolean("enabled", value).apply()
 
-    var phoneCalls: Boolean
-        get() = sp.getBoolean("phone_calls", true)
-        set(value) = sp.edit().putBoolean("phone_calls", value).apply()
+    /** Pause temporaire : heure (ms) jusqu'à laquelle aucune alerte n'est jouée. 0 = pas de pause. */
+    var pausedUntil: Long
+        get() = sp.getLong("paused_until", 0)
+        set(value) = sp.edit().putLong("paused_until", value).apply()
 
-    var smsMessages: Boolean
-        get() = sp.getBoolean("sms_messages", true)
-        set(value) = sp.edit().putBoolean("sms_messages", value).apply()
+    /** Interrupteurs généraux par type (tuiles « Alerte appels » / « Alerte messages »). */
+    var callsEnabled: Boolean
+        get() = sp.getBoolean("calls_enabled", true)
+        set(value) = sp.edit().putBoolean("calls_enabled", value).apply()
 
-    var teamsMessages: Boolean
-        get() = sp.getBoolean("teams_messages", true)
-        set(value) = sp.edit().putBoolean("teams_messages", value).apply()
+    var messagesEnabled: Boolean
+        get() = sp.getBoolean("messages_enabled", true)
+        set(value) = sp.edit().putBoolean("messages_enabled", value).apply()
 
-    var teamsCalls: Boolean
-        get() = sp.getBoolean("teams_calls", true)
-        set(value) = sp.edit().putBoolean("teams_calls", value).apply()
+    fun isPaused(now: Long = System.currentTimeMillis()) = pausedUntil > now
+
+    /** Vrai si l'application est activée et pas en pause. */
+    fun isActive(now: Long = System.currentTimeMillis()) = enabled && !isPaused(now)
+
+    fun typeEnabled(type: AlertType) = if (type == AlertType.CALL) callsEnabled else messagesEnabled
+
+    fun setTypeEnabled(type: AlertType, value: Boolean) {
+        if (type == AlertType.CALL) callsEnabled = value else messagesEnabled = value
+    }
+
+    /** La règle complète : général, pause, type, puis application. */
+    fun allows(type: AlertType, pkg: String): Boolean {
+        if (!isActive() || !typeEnabled(type)) return false
+        val app = apps.firstOrNull { it.pkg == pkg } ?: return false
+        return (if (type == AlertType.CALL) app.calls else app.messages) == true
+    }
+
+    var apps: List<WatchedApp>
+        get() {
+            val raw = sp.getString("apps", null) ?: return defaultApps()
+            val array = JSONArray(raw)
+            return (0 until array.length()).map { i ->
+                val o = array.getJSONObject(i)
+                WatchedApp(
+                    pkg = o.getString("pkg"),
+                    label = o.getString("label"),
+                    calls = if (o.has("calls")) o.getBoolean("calls") else null,
+                    messages = if (o.has("messages")) o.getBoolean("messages") else null,
+                    builtIn = o.optBoolean("builtIn"),
+                )
+            }
+        }
+        set(value) {
+            val array = JSONArray()
+            value.forEach { a ->
+                val o = JSONObject().put("pkg", a.pkg).put("label", a.label).put("builtIn", a.builtIn)
+                a.calls?.let { o.put("calls", it) }
+                a.messages?.let { o.put("messages", it) }
+                array.put(o)
+            }
+            sp.edit().putString("apps", array.toString()).apply()
+        }
+
+    // Reprend les réglages de la première version s'ils existent.
+    private fun defaultApps() = listOf(
+        WatchedApp(PKG_PHONE, "Téléphone", calls = sp.getBoolean("phone_calls", true), messages = null, builtIn = true),
+        WatchedApp(PKG_MESSAGES, "Google Messages", calls = null, messages = sp.getBoolean("sms_messages", true), builtIn = true),
+        WatchedApp(
+            PKG_TEAMS, "Teams",
+            calls = sp.getBoolean("teams_calls", true), messages = sp.getBoolean("teams_messages", true), builtIn = true,
+        ),
+    )
+
+    fun updateApp(pkg: String, transform: (WatchedApp) -> WatchedApp) {
+        apps = apps.map { if (it.pkg == pkg) transform(it) else it }
+    }
+
+    fun addApp(pkg: String, label: String) {
+        if (apps.none { it.pkg == pkg }) apps = apps + WatchedApp(pkg, label, calls = true, messages = true, builtIn = false)
+    }
+
+    fun removeApp(pkg: String) {
+        apps = apps.filterNot { it.pkg == pkg && !it.builtIn }
+    }
+
+    /** Coche (ou décoche) le type donné dans toutes les applications ; null = les deux types. */
+    fun setAllApps(type: AlertType?, value: Boolean) {
+        apps = apps.map {
+            it.copy(
+                calls = if (type != AlertType.MESSAGE) it.calls?.let { value } else it.calls,
+                messages = if (type != AlertType.CALL) it.messages?.let { value } else it.messages,
+            )
+        }
+    }
 
     /** false : tout le monde sauf la liste. true : uniquement les personnes de la liste. */
     var onlyListed: Boolean
@@ -85,5 +167,12 @@ class Prefs(context: Context) {
 
     fun removePerson(person: Person) {
         people = people.filterNot { it == person }
+    }
+
+    companion object {
+        /** Les appels classiques sont détectés via l'état du téléphone, quelle que soit l'appli Téléphone. */
+        const val PKG_PHONE = "com.google.android.dialer"
+        const val PKG_MESSAGES = "com.google.android.apps.messaging"
+        const val PKG_TEAMS = "com.microsoft.teams"
     }
 }

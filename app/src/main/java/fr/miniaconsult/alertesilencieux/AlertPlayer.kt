@@ -15,7 +15,7 @@ import android.provider.Settings
  * sans modifier les réglages de sonnerie du téléphone. Le volume utilisé est celui des alarmes.
  */
 class AlertPlayer(private val context: Context) {
-    enum class Kind { MESSAGE, PHONE_CALL, TEAMS_CALL }
+    enum class Kind { MESSAGE, PHONE_CALL, APP_CALL }
 
     private val handler = Handler(Looper.getMainLooper())
     private var player: MediaPlayer? = null

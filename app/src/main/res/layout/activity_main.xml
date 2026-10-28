@@ -18,70 +18,95 @@
             android:text="Application activée" />
 
         <TextView
+            android:id="@+id/statusSummary"
+            style="@style/Summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <!-- Raccourcis -->
+        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Raccourcis" />
+
+        <LinearLayout style="@style/ButtonRow" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <Button android:id="@+id/btnAllOn" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Tout activer" />
+            <Button android:id="@+id/btnAllOff" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Tout couper" />
+        </LinearLayout>
+        <LinearLayout style="@style/ButtonRow" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <Button android:id="@+id/btnCallsOnly" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Appels seulement" />
+            <Button android:id="@+id/btnMessagesOnly" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Messages seulement" />
+        </LinearLayout>
+
+        <TextView style="@style/Hint" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Pause (silence total, reprise automatique) :" />
+        <LinearLayout style="@style/ButtonRow" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <Button android:id="@+id/btnPause1h" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="1 h" />
+            <Button android:id="@+id/btnPause3h" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="3 h" />
+            <Button android:id="@+id/btnPauseTomorrow" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Demain 8 h" />
+        </LinearLayout>
+        <Button android:id="@+id/btnResume" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Reprendre maintenant" />
+
+        <TextView
             style="@style/Hint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Astuce : ajoutez la tuile « Alerte son » dans les réglages rapides (volet du haut → crayon) pour activer / désactiver en un geste." />
+            android:text="Astuce : ajoutez les tuiles « Alerte son », « Alerte appels » et « Alerte messages » dans le volet du haut (crayon) pour tout piloter en un geste." />
 
-        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Autorisations" />
+        <!-- Par type -->
+        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Par type" />
+        <Switch android:id="@+id/switchCalls" style="@style/BigSwitch" android:layout_width="match_parent" android:layout_height="56dp" android:text="📞  Tous les appels" />
+        <Switch android:id="@+id/switchMessages" style="@style/BigSwitch" android:layout_width="match_parent" android:layout_height="56dp" android:text="💬  Tous les messages" />
 
-        <TextView android:id="@+id/statusListener" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <Button android:id="@+id/btnListener" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accès aux notifications" />
+        <!-- Par application -->
+        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Par application" />
+        <LinearLayout
+            android:id="@+id/appsList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+        <LinearLayout style="@style/ButtonRow" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <Button android:id="@+id/btnAppsAllOn" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Tout cocher" />
+            <Button android:id="@+id/btnAppsAllOff" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Tout décocher" />
+        </LinearLayout>
+        <Button android:id="@+id/btnAddApp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="+ Ajouter une application (WhatsApp, Outlook...)" />
 
-        <TextView android:id="@+id/statusPhone" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <Button android:id="@+id/btnPhone" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Autoriser téléphone et journal d'appels" />
-
-        <TextView android:id="@+id/statusBattery" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-        <Button android:id="@+id/btnBattery" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ne pas restreindre la batterie" />
-
-        <TextView android:id="@+id/statusAlarm" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
-
-        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Alerter (uniquement si le téléphone est en silencieux / vibreur / ne pas déranger)" />
-
-        <Switch android:id="@+id/switchPhoneCalls" android:layout_width="match_parent" android:layout_height="48dp" android:text="Appels téléphoniques" />
-        <Switch android:id="@+id/switchSms" android:layout_width="match_parent" android:layout_height="48dp" android:text="Messages (Google Messages)" />
-        <Switch android:id="@+id/switchTeamsMessages" android:layout_width="match_parent" android:layout_height="48dp" android:text="Messages Teams" />
-        <Switch android:id="@+id/switchTeamsCalls" android:layout_width="match_parent" android:layout_height="48dp" android:text="Appels Teams" />
-
+        <!-- Personnes -->
         <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Personnes" />
-
         <RadioGroup
             android:id="@+id/radioMode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-
             <RadioButton android:id="@+id/radioExclude" android:layout_width="match_parent" android:layout_height="48dp" android:text="Tout le monde, sauf la liste ci-dessous" />
             <RadioButton android:id="@+id/radioOnly" android:layout_width="match_parent" android:layout_height="48dp" android:text="Uniquement la liste ci-dessous" />
         </RadioGroup>
-
         <Switch android:id="@+id/switchPrivate" android:layout_width="match_parent" android:layout_height="48dp" android:text="Alerter pour les numéros masqués / privés" />
-
         <LinearLayout
             android:id="@+id/peopleList"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical" />
+        <Button android:id="@+id/btnAddContact" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="+ Ajouter un contact du téléphone" />
+        <Button android:id="@+id/btnAddName" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="+ Ajouter un nom (ex. collègue Teams)" />
 
-        <Button android:id="@+id/btnAddContact" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ajouter un contact du téléphone" />
-        <Button android:id="@+id/btnAddName" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ajouter un nom (ex. collègue Teams)" />
-
+        <!-- Sons -->
         <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Sons" />
-
         <Button android:id="@+id/btnMessageSound" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <Button android:id="@+id/btnCallSound" android:layout_width="match_parent" android:layout_height="wrap_content" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button android:id="@+id/btnTestMessage" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Tester message" />
-            <Button android:id="@+id/btnTestCall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Tester appel" />
-            <Button android:id="@+id/btnStop" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Stop" />
+        <LinearLayout style="@style/ButtonRow" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <Button android:id="@+id/btnTestMessage" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Tester message" />
+            <Button android:id="@+id/btnTestCall" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Tester appel" />
+            <Button android:id="@+id/btnStop" style="@style/RowButton" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Stop" />
         </LinearLayout>
 
-        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Journal (derniers événements)" />
+        <!-- Autorisations -->
+        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Autorisations" />
+        <TextView android:id="@+id/statusListener" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Button android:id="@+id/btnListener" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Accès aux notifications" />
+        <TextView android:id="@+id/statusPhone" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Button android:id="@+id/btnPhone" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Autoriser téléphone et journal d'appels" />
+        <TextView android:id="@+id/statusBattery" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Button android:id="@+id/btnBattery" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ne pas restreindre la batterie" />
+        <TextView android:id="@+id/statusAlarm" style="@style/Status" android:layout_width="match_parent" android:layout_height="wrap_content" />
 
+        <!-- Journal -->
+        <TextView style="@style/Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Journal (derniers événements)" />
         <TextView
             android:id="@+id/logText"
             android:layout_width="match_parent"
@@ -89,7 +114,6 @@
             android:fontFamily="monospace"
             android:textIsSelectable="true"
             android:textSize="12sp" />
-
         <Button android:id="@+id/btnClearLog" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Effacer le journal" />
     </LinearLayout>
 </ScrollView>

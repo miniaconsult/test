@@ -15,13 +15,16 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.ContactsContract
 import android.provider.Settings
+import android.util.TypedValue
 import android.view.Gravity
 import android.widget.Button
 import android.widget.CompoundButton
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.RadioGroup
+import android.widget.Switch
 import android.widget.TextView
+import java.util.Calendar
 
 class MainActivity : Activity() {
 
@@ -41,12 +44,39 @@ class MainActivity : Activity() {
             insets
         }
 
-        bindSwitch(R.id.switchEnabled, prefs.enabled) { prefs.enabled = it }
-        bindSwitch(R.id.switchPhoneCalls, prefs.phoneCalls) { prefs.phoneCalls = it }
-        bindSwitch(R.id.switchSms, prefs.smsMessages) { prefs.smsMessages = it }
-        bindSwitch(R.id.switchTeamsMessages, prefs.teamsMessages) { prefs.teamsMessages = it }
-        bindSwitch(R.id.switchTeamsCalls, prefs.teamsCalls) { prefs.teamsCalls = it }
-        bindSwitch(R.id.switchPrivate, prefs.alertPrivateNumbers) { prefs.alertPrivateNumbers = it }
+        bindSwitch(R.id.switchEnabled) { change { prefs.enabled = it; if (it) prefs.pausedUntil = 0 } }
+        bindSwitch(R.id.switchCalls) { change { prefs.callsEnabled = it } }
+        bindSwitch(R.id.switchMessages) { change { prefs.messagesEnabled = it } }
+        bindSwitch(R.id.switchPrivate) { prefs.alertPrivateNumbers = it }
+
+        // Raccourcis
+        button(R.id.btnAllOn) {
+            change {
+                prefs.enabled = true
+                prefs.pausedUntil = 0
+                prefs.callsEnabled = true
+                prefs.messagesEnabled = true
+                prefs.setAllApps(null, true)
+            }
+        }
+        button(R.id.btnAllOff) { change { prefs.enabled = false } }
+        button(R.id.btnCallsOnly) { change { preset(calls = true, messages = false) } }
+        button(R.id.btnMessagesOnly) { change { preset(calls = false, messages = true) } }
+        button(R.id.btnPause1h) { pauseFor(60) }
+        button(R.id.btnPause3h) { pauseFor(180) }
+        button(R.id.btnPauseTomorrow) {
+            val tomorrow = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, 1)
+                set(Calendar.HOUR_OF_DAY, 8)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+            }
+            pauseUntil(tomorrow.timeInMillis)
+        }
+        button(R.id.btnResume) { change { prefs.pausedUntil = 0; prefs.enabled = true } }
+        button(R.id.btnAppsAllOn) { change { prefs.setAllApps(null, true) } }
+        button(R.id.btnAppsAllOff) { change { prefs.setAllApps(null, false) } }
+        button(R.id.btnAddApp) { pickApp() }
 
         findViewById<RadioGroup>(R.id.radioMode).apply {
             check(if (prefs.onlyListed) R.id.radioOnly else R.id.radioExclude)
@@ -92,7 +122,16 @@ class MainActivity : Activity() {
     }
 
     private fun refresh() {
-        findViewById<CompoundButton>(R.id.switchEnabled).isChecked = prefs.enabled
+        setChecked(R.id.switchEnabled, prefs.enabled)
+        setChecked(R.id.switchCalls, prefs.callsEnabled)
+        setChecked(R.id.switchMessages, prefs.messagesEnabled)
+        setChecked(R.id.switchPrivate, prefs.alertPrivateNumbers)
+        findViewById<TextView>(R.id.statusSummary).apply {
+            text = summary()
+            setBackgroundColor(if (prefs.isActive()) 0x3322AA55 else 0x33DD4444)
+        }
+        findViewById<Button>(R.id.btnResume).visibility = if (prefs.isPaused()) Button.VISIBLE else Button.GONE
+        refreshApps()
 
         val listenerOk = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
             ?.contains(ComponentName(this, AlertListenerService::class.java).flattenToString()) == true
@@ -122,6 +161,114 @@ class MainActivity : Activity() {
         val log = EventLog.read(this)
         findViewById<TextView>(R.id.logText).text = if (log.isEmpty()) "(vide)" else log.joinToString("\n")
     }
+
+    /** Résumé lisible de l'état actuel, en haut de l'écran. */
+    private fun summary(): String {
+        if (!prefs.enabled) return "🔕 Tout est coupé : aucune alerte."
+        if (prefs.isPaused()) return "⏸ En pause jusqu'à ${Tiles.time(prefs.pausedUntil)} : aucune alerte."
+        val apps = prefs.apps
+        fun names(type: AlertType) = apps.filter { prefs.allows(type, it.pkg) }.joinToString(", ") { it.label }
+        val calls = names(AlertType.CALL).ifEmpty { "aucun" }
+        val messages = names(AlertType.MESSAGE).ifEmpty { "aucun" }
+        return "🔔 Alerte si le téléphone est muet.\n📞 Appels : $calls\n💬 Messages : $messages"
+    }
+
+    private fun preset(calls: Boolean, messages: Boolean) {
+        prefs.enabled = true
+        prefs.pausedUntil = 0
+        prefs.callsEnabled = calls
+        prefs.messagesEnabled = messages
+    }
+
+    private fun pauseFor(minutes: Int) = pauseUntil(System.currentTimeMillis() + minutes * 60_000L)
+
+    private fun pauseUntil(time: Long) = change {
+        prefs.enabled = true
+        prefs.pausedUntil = time
+        EventLog.add(this, "Pause jusqu'à ${Tiles.time(time)}")
+    }
+
+    /** Applique un changement de réglage puis met à jour l'écran et les tuiles. */
+    private fun change(block: () -> Unit) {
+        block()
+        Tiles.refreshAll(this)
+        refresh()
+    }
+
+    private fun refreshApps() {
+        val container = findViewById<LinearLayout>(R.id.appsList)
+        container.removeAllViews()
+        prefs.apps.forEach { app -> container.addView(appCard(app)) }
+    }
+
+    private fun appCard(app: WatchedApp): LinearLayout {
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(8), 0, dp(8))
+        }
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        header.addView(TextView(this).apply {
+            text = app.label
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            compoundDrawablePadding = dp(12)
+            appIcon(app.pkg)?.let { setCompoundDrawablesRelative(it, null, null, null) }
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        })
+        if (!app.builtIn) {
+            header.addView(Button(this).apply {
+                text = "Retirer"
+                setOnClickListener { change { prefs.removeApp(app.pkg) } }
+            })
+        }
+        card.addView(header)
+        app.calls?.let { checked ->
+            card.addView(appSwitch("Appels", checked, prefs.callsEnabled) { v -> prefs.updateApp(app.pkg) { it.copy(calls = v) } })
+        }
+        app.messages?.let { checked ->
+            card.addView(appSwitch("Messages", checked, prefs.messagesEnabled) { v -> prefs.updateApp(app.pkg) { it.copy(messages = v) } })
+        }
+        return card
+    }
+
+    /** Interrupteur d'une application ; grisé (mais modifiable) si le type est coupé globalement. */
+    private fun appSwitch(label: String, checked: Boolean, typeOn: Boolean, onChange: (Boolean) -> Unit) =
+        Switch(this).apply {
+            text = if (typeOn) label else "$label (type coupé)"
+            isChecked = checked
+            alpha = if (typeOn) 1f else 0.5f
+            minHeight = dp(48)
+            setPaddingRelative(dp(44), 0, 0, 0)
+            setOnCheckedChangeListener { _, v -> change { onChange(v) } }
+        }
+
+    private fun appIcon(pkg: String) = try {
+        packageManager.getApplicationIcon(pkg).apply { setBounds(0, 0, dp(32), dp(32)) }
+    } catch (_: PackageManager.NameNotFoundException) {
+        null
+    }
+
+    private fun pickApp() {
+        val watched = prefs.apps.map { it.pkg }.toSet()
+        val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val apps = packageManager.queryIntentActivities(launcher, 0)
+            .map { it.activityInfo.packageName to it.loadLabel(packageManager).toString() }
+            .distinctBy { it.first }
+            .filter { it.first !in watched && it.first != packageName }
+            .sortedBy { it.second.lowercase() }
+        AlertDialog.Builder(this)
+            .setTitle("Ajouter une application")
+            .setItems(apps.map { it.second }.toTypedArray()) { _, which ->
+                val (pkg, label) = apps[which]
+                change { prefs.addApp(pkg, label) }
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
+    }
+
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
     private fun refreshPeople() {
         val container = findViewById<LinearLayout>(R.id.peopleList)
@@ -230,10 +377,18 @@ class MainActivity : Activity() {
         findViewById<TextView>(id).text = if (ok) "✅ $okText" else "⚠️ $koText"
     }
 
-    private fun bindSwitch(id: Int, value: Boolean, onChange: (Boolean) -> Unit) {
+    private fun bindSwitch(id: Int, onChange: (Boolean) -> Unit) {
         findViewById<CompoundButton>(id).apply {
+            setOnCheckedChangeListener { view, checked -> if (view.tag == null) onChange(checked) }
+        }
+    }
+
+    /** Met à jour un interrupteur sans déclencher son action. */
+    private fun setChecked(id: Int, value: Boolean) {
+        findViewById<CompoundButton>(id).apply {
+            tag = "refresh"
             isChecked = value
-            setOnCheckedChangeListener { _, checked -> onChange(checked) }
+            tag = null
         }
     }
 

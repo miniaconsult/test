@@ -20,7 +20,7 @@ import android.telephony.TelephonyManager
 
 /**
  * Service principal. Android le garde actif tant que l'accès aux notifications est accordé.
- * - Lit les notifications de Google Messages et de Teams.
+ * - Lit les notifications des applications surveillées (Google Messages, Teams, applis ajoutées).
  * - Écoute l'état du téléphone pour les appels classiques (Téléphone Google).
  * Une alerte n'est jouée que si le son du téléphone n'est pas déjà actif.
  */
@@ -32,7 +32,9 @@ class AlertListenerService : NotificationListenerService() {
 
     private var receiverRegistered = false
     private var callDecided = false
-    private var teamsCallKey: String? = null
+    private var appCallKey: String? = null
+    /** Application à l'origine de l'alerte en cours, pour l'arrêter si on la désactive. */
+    private var alertSource: Pair<AlertType, String>? = null
     private val lastMessageTime = HashMap<String, Long>()
     private var lastMessageAlertAt = 0L
 
@@ -43,8 +45,10 @@ class AlertListenerService : NotificationListenerService() {
     // Si le numéro n'arrive pas (numéro masqué), on décide quand même après un court délai.
     private val numberFallback = Runnable { if (!callDecided) decidePhoneCall(null, numberKnown = false) }
 
-    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == "enabled" && !prefs.enabled) player.stop()
+    // Désactivation (tuile, raccourci, pause...) pendant une alerte : on l'arrête tout de suite.
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+        val source = alertSource ?: return@OnSharedPreferenceChangeListener
+        if (player.playing != null && !prefs.allows(source.first, source.second)) player.stop()
     }
     private lateinit var settings: SharedPreferences
 
@@ -114,7 +118,7 @@ class AlertListenerService : NotificationListenerService() {
     private fun decidePhoneCall(number: String?, numberKnown: Boolean) {
         callDecided = true
         val who = if (number.isNullOrBlank()) "numéro masqué" else number
-        if (!prefs.enabled || !prefs.phoneCalls) return
+        if (!prefs.allows(AlertType.CALL, Prefs.PKG_PHONE)) return
         if (SoundState.ringerAudible(this, AudioManager.STREAM_RING) && !SoundState.doNotDisturbActive(this)) {
             EventLog.add(this, "Appel de $who : son déjà actif, rien à faire")
             return
@@ -131,37 +135,44 @@ class AlertListenerService : NotificationListenerService() {
             return
         }
         EventLog.add(this, "Appel de $who : ALERTE")
+        alertSource = AlertType.CALL to Prefs.PKG_PHONE
         player.play(AlertPlayer.Kind.PHONE_CALL, prefs.callSound, CALL_MAX_MS)
     }
 
-    // ---------- Notifications (Google Messages, Teams) ----------
+    // ---------- Notifications (Google Messages, Teams, applis ajoutées) ----------
 
     override fun onNotificationPosted(sbn: StatusBarNotification, rankingMap: RankingMap) {
         val n = sbn.notification
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
-        when (sbn.packageName) {
-            PKG_MESSAGES -> if (n.category == Notification.CATEGORY_MESSAGE) {
-                handleMessage(sbn, rankingMap, "SMS", prefs.smsMessages)
-            }
-            PKG_TEAMS -> if (n.category == Notification.CATEGORY_CALL) {
-                handleTeamsCall(sbn, rankingMap)
-            } else if (n.category == Notification.CATEGORY_MESSAGE || n.extras.containsKey(Notification.EXTRA_MESSAGES)) {
-                handleMessage(sbn, rankingMap, "Teams", prefs.teamsMessages)
-            }
+        if (sbn.packageName == Prefs.PKG_PHONE) return // appels classiques : gérés via l'état du téléphone
+        val app = prefs.apps.firstOrNull { it.pkg == sbn.packageName } ?: return
+        when {
+            n.category == Notification.CATEGORY_CALL -> handleAppCall(sbn, rankingMap, app)
+            isMessage(sbn) -> handleMessage(sbn, rankingMap, app)
         }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         lastMessageTime.remove(sbn.key)
-        if (sbn.key == teamsCallKey) {
-            teamsCallKey = null
-            player.stop(AlertPlayer.Kind.TEAMS_CALL)
+        if (sbn.key == appCallKey) {
+            appCallKey = null
+            player.stop(AlertPlayer.Kind.APP_CALL)
         }
     }
 
-    private fun handleMessage(sbn: StatusBarNotification, rankingMap: RankingMap, source: String, sourceEnabled: Boolean) {
+    /** Une notification qui ressemble à un message (et pas à une notification technique). */
+    private fun isMessage(sbn: StatusBarNotification): Boolean {
         val n = sbn.notification
-        if (n.flags and Notification.FLAG_ONGOING_EVENT != 0) return
+        if (n.flags and Notification.FLAG_ONGOING_EVENT != 0) return false
+        if (n.category == Notification.CATEGORY_MESSAGE || n.category == Notification.CATEGORY_EMAIL) return true
+        if (n.extras.containsKey(Notification.EXTRA_MESSAGES)) return true
+        // Google Messages publie aussi des notifications techniques : seuls les vrais messages comptent.
+        if (sbn.packageName == Prefs.PKG_MESSAGES) return false
+        return n.category == null || n.category == Notification.CATEGORY_SOCIAL
+    }
+
+    private fun handleMessage(sbn: StatusBarNotification, rankingMap: RankingMap, app: WatchedApp) {
+        val n = sbn.notification
 
         // Une même conversation met à jour la même notification : on n'alerte que pour un message plus récent.
         val latest = latestMessage(n.extras)
@@ -172,34 +183,37 @@ class AlertListenerService : NotificationListenerService() {
         // Message envoyé par moi-même (réponse depuis la notification) : pas d'expéditeur.
         if (latest != null && latest.getCharSequence("sender") == null && senderPerson(latest) == null) return
 
-        if (!prefs.enabled || !sourceEnabled) return
+        if (!prefs.allows(AlertType.MESSAGE, app.pkg)) return
 
         val names = senderNames(n.extras, latest)
         val numbers = senderNumbers(n.extras, latest) + names
         val who = names.firstOrNull() ?: "?"
+        val source = app.label
 
         if (SoundState.inCall(this)) {
-            EventLog.add(this, "$source de $who : ignoré (appel en cours)")
+            EventLog.add(this, "$source, message de $who : ignoré (appel en cours)")
             return
         }
         if (notificationAudible(sbn, rankingMap)) {
-            EventLog.add(this, "$source de $who : son déjà actif, rien à faire")
+            EventLog.add(this, "$source, message de $who : son déjà actif, rien à faire")
             return
         }
         if (!Matching.allows(prefs, names, numbers)) {
-            EventLog.add(this, "$source de $who : ignoré (filtre des personnes)")
+            EventLog.add(this, "$source, message de $who : ignoré (filtre des personnes)")
             return
         }
-        if (player.playing == AlertPlayer.Kind.PHONE_CALL || player.playing == AlertPlayer.Kind.TEAMS_CALL) return
+        if (player.playing == AlertPlayer.Kind.PHONE_CALL || player.playing == AlertPlayer.Kind.APP_CALL) return
         val now = System.currentTimeMillis()
         if (now - lastMessageAlertAt < MESSAGE_COOLDOWN_MS) return
         lastMessageAlertAt = now
 
-        EventLog.add(this, "$source de $who : ALERTE")
+        EventLog.add(this, "$source, message de $who : ALERTE")
+        alertSource = AlertType.MESSAGE to app.pkg
         player.play(AlertPlayer.Kind.MESSAGE, prefs.messageSound, MESSAGE_MAX_MS)
     }
 
-    private fun handleTeamsCall(sbn: StatusBarNotification, rankingMap: RankingMap) {
+    /** Appel entrant d'une application (Teams, WhatsApp...), signalé par sa notification d'appel. */
+    private fun handleAppCall(sbn: StatusBarNotification, rankingMap: RankingMap, app: WatchedApp) {
         val n = sbn.notification
         val callType = n.extras.getInt(Notification.EXTRA_CALL_TYPE, CALL_TYPE_UNKNOWN)
         val incoming = when (callType) {
@@ -209,28 +223,30 @@ class AlertListenerService : NotificationListenerService() {
         }
         if (!incoming) {
             // Appel décroché (devenu "en cours") : on arrête l'alerte.
-            if (sbn.key == teamsCallKey) {
-                teamsCallKey = null
-                player.stop(AlertPlayer.Kind.TEAMS_CALL)
+            if (sbn.key == appCallKey) {
+                appCallKey = null
+                player.stop(AlertPlayer.Kind.APP_CALL)
             }
             return
         }
-        if (sbn.key == teamsCallKey) return
-        teamsCallKey = sbn.key
+        if (sbn.key == appCallKey) return
+        appCallKey = sbn.key
 
-        if (!prefs.enabled || !prefs.teamsCalls) return
+        if (!prefs.allows(AlertType.CALL, app.pkg)) return
         val names = senderNames(n.extras, null)
         val who = names.firstOrNull() ?: "?"
+        val source = app.label
         if (SoundState.ringerAudible(this, AudioManager.STREAM_RING) && matchesInterruptionFilter(sbn, rankingMap)) {
-            EventLog.add(this, "Appel Teams de $who : son déjà actif, rien à faire")
+            EventLog.add(this, "$source, appel de $who : son déjà actif, rien à faire")
             return
         }
         if (!Matching.allows(prefs, names, emptyList())) {
-            EventLog.add(this, "Appel Teams de $who : ignoré (filtre des personnes)")
+            EventLog.add(this, "$source, appel de $who : ignoré (filtre des personnes)")
             return
         }
-        EventLog.add(this, "Appel Teams de $who : ALERTE")
-        player.play(AlertPlayer.Kind.TEAMS_CALL, prefs.callSound, CALL_MAX_MS)
+        EventLog.add(this, "$source, appel de $who : ALERTE")
+        alertSource = AlertType.CALL to app.pkg
+        player.play(AlertPlayer.Kind.APP_CALL, prefs.callSound, CALL_MAX_MS)
     }
 
     // ---------- Outils ----------
@@ -275,8 +291,6 @@ class AlertListenerService : NotificationListenerService() {
             .map { it.removePrefix("tel:") }
 
     companion object {
-        const val PKG_MESSAGES = "com.google.android.apps.messaging"
-        const val PKG_TEAMS = "com.microsoft.teams"
         private const val CALL_TYPE_UNKNOWN = -1
         private const val CALL_MAX_MS = 60_000L
         private const val MESSAGE_MAX_MS = 15_000L
